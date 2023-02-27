@@ -40,9 +40,9 @@ npm start
 ```
 6.In your Slack workspace, install the app and authorize it to access your Slack account.
 
-7.In your GitHub account, configure the OAuth app and set the authorization callback URL to http://localhost:3000/auth/github/callback.
+7.In your GitHub account, configure the OAuth app and set the authorization callback URL to http://localhost:3000/auth/callback
 
-8.In your Slack workspace, run the /auth command to authorize the app to access your GitHub account.
+8.In your Slack workspace, you can now react to a github link and if its not authorized , it will send you message with link to authorize.
 
 # Usage
 To use the application, you need to take the following steps:
