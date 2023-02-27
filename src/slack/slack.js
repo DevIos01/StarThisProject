@@ -1,6 +1,6 @@
 const { App, LogLevel } = require('@slack/bolt');
 const axios = require('axios');
-const {redis} = require('../redis/redis');
+const { redis } = require('../redis/redis');
 
 const slackBotToken = process.env.SLACK_BOT_TOKEN;
 const slackAppToken = process.env.SLACK_APP_TOKEN;
@@ -9,96 +9,103 @@ const githubClientId = process.env.GITHUB_CLIENT_ID;
 
 // Slack app
 const slackApp = new App({
-    token: slackBotToken,
-    appToken: slackAppToken,
-    socketMode: true,
-    signingSecret: slackSigningSecret,
-    logLevel: LogLevel.DEBUG,
+  token: slackBotToken,
+  appToken: slackAppToken,
+  socketMode: true,
+  signingSecret: slackSigningSecret,
+  logLevel: LogLevel.DEBUG,
 });
 
 slackApp.event('reaction_added', async ({ event, context }) => {
 
-    if (event.reaction !== 'star') {
-      return;
-    }
-  
-    const result = await slackApp.client.conversations.history({
+  if (event.reaction !== 'star') {
+    return;
+  }
+
+  const result = await slackApp.client.conversations.history({
+    channel: event.item.channel,
+    latest: event.item.ts,
+    inclusive: true, // Limit the results to only one
+    limit: 1
+  });
+
+  const message = result.messages[0];
+
+  if (!message.text) {
+    return;
+  }
+
+  const regex = /https:\/\/github.com\/(.+?)\/(.+?)(?:\s|>)/;
+  const match = message.text.match(regex);
+  if (!match) {
+    return;
+  }
+
+  const githubOwner = match[1];
+  const githubRepo = match[2];
+
+  const state = {
+    slackUserId: message.user,
+    channel: event.item.channel,
+  };
+  const authorizationUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=user,repo&state=${encodeURIComponent(
+    JSON.stringify(state)
+  )}`;
+
+  const githubId = await redis.get(`slack-id-to-github-id:${message.user}`);
+
+  if (!githubId) {
+
+    await slackApp.client.chat.postEphemeral({
       channel: event.item.channel,
-      latest: event.item.ts,
-      inclusive: true, // Limit the results to only one
-      limit: 1
+      user: message.user,
+      text: `Seems like you haven\'t authorized the app to access your GitHub account yet. To do so, click the link <${authorizationUrl}|here> and follow the instructions.`,
     });
-  
-    const message = result.messages[0];
-  
-    if (!message.text) {
-      return;
-    }
-  
-    const regex = /https:\/\/github.com\/(.+?)\/(.+?)(?:\s|>)/;
-    const match = message.text.match(regex);
-    if (!match) {
-      return;
-    }
+    return;
+  }
 
-    const githubOwner = match[1];
-    const githubRepo = match[2];
-  
-    const state = {
-      slackUserId: message.user,
+  const accessToken = await redis.get(`github-token:${githubId}`);
+
+  if (!accessToken) {
+
+    await slackApp.client.chat.postEphemeral({
       channel: event.item.channel,
-    };
-    const authorizationUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=user,repo&state=${encodeURIComponent(
-      JSON.stringify(state)
-    )}`;
-  
-    const githubId = await redis.get(`slack-id-to-github-id:${message.user}`);
+      user: message.user,
+      text: `Seems like you haven\'t authorized the app to access your GitHub account yet. To do so, click the link <${authorizationUrl}|here> and follow the instructions.`,
+    });
+    return;
+  }
 
-    if (!githubId) {
+  try {
+    const response = await axios.put(
+      `https://api.github.com/user/starred/${githubOwner}/${githubRepo}`,
+      null,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+     
+    await slackApp.client.chat.postEphemeral({
+      channel: event.item.channel,
+      user: message.user,
+      text: `You have successfully starred ${githubOwner}/${githubRepo}!`,
+    });
 
-      await slackApp.client.chat.postEphemeral({
-        channel: event.item.channel,
-        user: message.user,
-        text: `Seems like you haven\'t authorized the app to access your GitHub account yet. To do so, click the link <${authorizationUrl}|here> and follow the instructions.`,
-      });
-      return;
-    }
-  
-    const accessToken = await redis.get(`github-token:${githubId}`);
-
-    if (!accessToken) {
-
-      await slackApp.client.chat.postEphemeral({
-        channel: event.item.channel,
-        user: message.user,
-        text: `Seems like you haven\'t authorized the app to access your GitHub account yet. To do so, click the link <${authorizationUrl}|here> and follow the instructions.`,
-      });
-      return;
-    }
-  
-    try {
-      const response = await axios.put(
-        `https://api.github.com/user/starred/${githubOwner}/${githubRepo}`,
-        null,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/vnd.github.v3+json',
-          },
-        }
-      );
-      console.log(`Starred ${githubOwner}/${githubRepo} for user ${githubId}`);
-    } catch (error) {
-      console.error(`Error starring ${githubOwner}/${githubRepo} for user ${githubId}: ${error.message}`);
-    }
+    console.log(`Starred ${githubOwner}/${githubRepo} for user ${githubId}`);
+  } catch (error) {
+    console.error(`Error starring ${githubOwner}/${githubRepo} for user ${githubId}: ${error.message}`);
+  }
 });
 
-  // Start the Slack app
+// Start the Slack app
 const StartSlackApp = () => new Promise(async (resolve, reject) => {
-    slackApp.start(process.env.SLACK_PORT || 4000)
+  slackApp.start(process.env.SLACK_PORT || 4000)
     .then((result) => {
-        console.log('slackApp is running! in port 4000');
-        resolve();
+      console.log('slackApp is running! in port 4000');
+      resolve();
     })
     .catch(reject);
 });

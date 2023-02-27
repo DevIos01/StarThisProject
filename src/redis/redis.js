@@ -7,8 +7,8 @@ const redis = Redis.createClient({
 redis.on('connect', () => {
     console.log(`Connected to Redis at ${redis.options.host}:${redis.options.port}`);
 });
-  
-  redis.on('error', (error) => {
+
+redis.on('error', (error) => {
     console.error(`Error connecting to Redis: ${error.message}`);
 });
 
