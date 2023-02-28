@@ -45,20 +45,20 @@ slackApp.event('reaction_added', async ({ event, context }) => {
   const githubRepo = match[2];
 
   const state = {
-    slackUserId: message.user,
+    slackUserId: event.item.user,
     channel: event.item.channel,
   };
   const authorizationUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=user,repo&state=${encodeURIComponent(
     JSON.stringify(state)
   )}`;
 
-  const githubId = await redis.get(`slack-id-to-github-id:${message.user}`);
+  const githubId = await redis.get(`slack-id-to-github-id:${event.item.user}`);
 
   if (!githubId) {
 
     await slackApp.client.chat.postEphemeral({
       channel: event.item.channel,
-      user: message.user,
+      user: event.item.user,
       text: `Seems like you haven\'t authorized the app to access your GitHub account yet. To do so, click the link <${authorizationUrl}|here> and follow the instructions.`,
     });
     return;
@@ -70,7 +70,7 @@ slackApp.event('reaction_added', async ({ event, context }) => {
 
     await slackApp.client.chat.postEphemeral({
       channel: event.item.channel,
-      user: message.user,
+      user: event.item.user,
       text: `Seems like you haven\'t authorized the app to access your GitHub account yet. To do so, click the link <${authorizationUrl}|here> and follow the instructions.`,
     });
     return;
@@ -90,7 +90,7 @@ slackApp.event('reaction_added', async ({ event, context }) => {
      
     await slackApp.client.chat.postEphemeral({
       channel: event.item.channel,
-      user: message.user,
+      user: event.item.user,
       text: `You have successfully starred ${githubOwner}/${githubRepo}!`,
     });
 
