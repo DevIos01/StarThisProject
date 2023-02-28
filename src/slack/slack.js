@@ -48,7 +48,7 @@ slackApp.event('reaction_added', async ({ event, context }) => {
     slackUserId: event.user,
     channel: event.item.channel,
   };
-  const authorizationUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=user,repo&state=${encodeURIComponent(
+  const authorizationUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=read:user,public_repo&state=${encodeURIComponent(
     JSON.stringify(state)
   )}`;
 
