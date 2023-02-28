@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const REDIS_URL = process.env.REDIS_URL;
 
-const redis = Redis(REDIS_URL);
+const redis = new Redis(REDIS_URL);
 console.log(REDIS_URL);
 
 redis.on('connect', () => {
