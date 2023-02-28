@@ -1,7 +1,7 @@
 const { Redis } = require('ioredis');
 
 const redis = Redis.createClient({
-    url: 'redis://redis:6379'
+    url: REDIS_URL
 });
 
 redis.on('connect', () => {
