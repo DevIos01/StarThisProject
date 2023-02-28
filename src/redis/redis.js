@@ -1,9 +1,10 @@
 const { Redis } = require('ioredis');
+require('dotenv').config();
 
 const REDIS_URL = process.env.REDIS_URL;
 
 const redis = Redis.createClient({
-    url: "redis://test:test@localhost:6329",
+    url: REDIS_URL,
 });
 
 console.log(REDIS_URL);

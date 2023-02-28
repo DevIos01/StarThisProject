@@ -1,6 +1,7 @@
 const { App, LogLevel } = require('@slack/bolt');
 const axios = require('axios');
 const { redis } = require('../redis/redis');
+require('dotenv').config();
 
 const slackBotToken = process.env.SLACK_BOT_TOKEN;
 const slackAppToken = process.env.SLACK_APP_TOKEN;

@@ -2,6 +2,7 @@ const { Router } = require('express');
 const axios = require('axios');
 const { redis } = require('../redis/redis');
 const { slackApp } = require('../slack/slack');
+require('dotenv').config();
 
 const githubClientId = process.env.GITHUB_CLIENT_ID;
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
